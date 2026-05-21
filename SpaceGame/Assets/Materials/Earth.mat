@@ -43,10 +43,6 @@ Material:
         m_Texture: {fileID: 2800000, guid: c2ca94a7ee080d64d88f34e76c153dbd, type: 3}
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
-    - _PopulationHeatmap:
-        m_Texture: {fileID: 0}
-        m_Scale: {x: 1, y: 1}
-        m_Offset: {x: 0, y: 0}
     - _SpecularMap:
         m_Texture: {fileID: 2800000, guid: e2197811c787488479870db10161fb94, type: 3}
         m_Scale: {x: 1, y: 1}
@@ -58,7 +54,6 @@ Material:
     - _AtmosphereStrength: 0.59
     - _BorderStrength: 0.6
     - _FactionStrength: 14.52
-    - _HeatmapStrength: 0.5
     - _NightBrightness: 1
     - _NightDayMaskPow: 1
     - _NormalStrength: 0.527
