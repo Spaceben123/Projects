@@ -1,0 +1,18 @@
+{"sites":[
+  {"name":"Cape Canaveral","lat":28.6,"lon":-80.6,"regionId":"north_america","types":["rocket","icbm"]},
+  {"name":"Vandenberg SFB","lat":34.7,"lon":-120.6,"regionId":"north_america","types":["rocket","icbm"]},
+  {"name":"Baikonur","lat":45.9,"lon":63.3,"regionId":"c_asia","types":["rocket","icbm"]},
+  {"name":"Plesetsk","lat":62.9,"lon":40.7,"regionId":"russia","types":["icbm","rocket"]},
+  {"name":"Jiuquan","lat":40.96,"lon":100.29,"regionId":"e_asia","types":["rocket","icbm"]},
+  {"name":"Xichang","lat":28.25,"lon":102.03,"regionId":"e_asia","types":["rocket"]},
+  {"name":"Wenchang","lat":19.61,"lon":110.95,"regionId":"e_asia","types":["rocket"]},
+  {"name":"Taiyuan","lat":37.46,"lon":112.45,"regionId":"e_asia","types":["rocket"]},
+  {"name":"Satish Dhawan","lat":13.72,"lon":80.23,"regionId":"s_asia","types":["rocket"]},
+  {"name":"Tanegashima","lat":30.40,"lon":130.97,"regionId":"e_asia","types":["rocket"]},
+  {"name":"Kourou","lat":5.24,"lon":-52.77,"regionId":"s_america","types":["rocket"]},
+  {"name":"Palmachim","lat":31.90,"lon":34.69,"regionId":"middle_east","types":["icbm","rocket"]},
+  {"name":"Kapustin Yar","lat":48.52,"lon":45.80,"regionId":"russia","types":["icbm"]},
+  {"name":"Woomera","lat":-31.13,"lon":136.82,"regionId":"oceania","types":["rocket"]},
+  {"name":"Mahia","lat":-39.26,"lon":177.86,"regionId":"oceania","types":["rocket"]},
+  {"name":"Esrange","lat":67.89,"lon":21.07,"regionId":"w_europe","types":["rocket"]}
+]}

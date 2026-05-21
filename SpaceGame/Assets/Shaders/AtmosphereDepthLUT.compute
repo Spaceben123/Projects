@@ -1,0 +1,66 @@
+#pragma kernel BakeOpticalDepth
+
+RWTexture2D<float4> Result;
+
+float _PlanetRadius;
+float _AtmoRadius;
+float _ScaleHeightR;
+float _ScaleHeightM;
+int   _LUTResolution;
+
+float2 RaySphereIntersect(float3 ro, float3 rd, float r)
+{
+    float b = dot(ro, rd);
+    float c = dot(ro, ro) - r * r;
+    float d = b * b - c;
+    if (d < 0.0) return float2(1e10, -1e10);
+    float s = sqrt(d);
+    return float2(-b - s, -b + s);
+}
+
+[numthreads(8, 8, 1)]
+void BakeOpticalDepth(uint3 id : SV_DispatchThreadID)
+{
+    if ((int)id.x >= _LUTResolution || (int)id.y >= _LUTResolution) return;
+
+    float normH    = (float)id.x / max(_LUTResolution - 1, 1);
+    float cosAngle = (float)id.y / max(_LUTResolution - 1, 1) * 2.0 - 1.0;
+    float sinAngle = sqrt(max(0.0, 1.0 - cosAngle * cosAngle));
+
+    float  startR   = _PlanetRadius + normH * (_AtmoRadius - _PlanetRadius);
+    float3 startPos = float3(0.0, startR, 0.0);
+    float3 rayDir   = float3(sinAngle, cosAngle, 0.0);
+
+    float2 atmoHit = RaySphereIntersect(startPos, rayDir, _AtmoRadius);
+    float2 planHit = RaySphereIntersect(startPos, rayDir, _PlanetRadius * 0.9999);
+
+    // Ray hits planet before reaching atmosphere exit — point is in shadow
+    bool hitPlanet = planHit.x > 0.001 && planHit.x < atmoHit.y;
+    if (hitPlanet)
+    {
+        Result[id.xy] = float4(1e6, 1e6, 0, 0);
+        return;
+    }
+
+    float tMax = max(atmoHit.y, 0.0);
+    if (tMax <= 0.0)
+    {
+        Result[id.xy] = float4(0, 0, 0, 0);
+        return;
+    }
+
+    const int STEPS = 32;
+    float stepSize     = tMax / (float)STEPS;
+    float rayleighDepth = 0.0;
+    float mieDepth      = 0.0;
+
+    for (int i = 0; i < STEPS; i++)
+    {
+        float3 pos = startPos + rayDir * ((i + 0.5) * stepSize);
+        float  h   = max(0.0, length(pos) - _PlanetRadius);
+        rayleighDepth += exp(-h / _ScaleHeightR) * stepSize;
+        mieDepth      += exp(-h / _ScaleHeightM) * stepSize;
+    }
+
+    Result[id.xy] = float4(rayleighDepth, mieDepth, 0.0, 1.0);
+}

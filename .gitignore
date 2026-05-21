@@ -1,0 +1,93 @@
+# ===========================
+# Large Binary Assets (sync via OneDrive/cloud — too big for GitHub)
+# ===========================
+# Raw source textures (8K+ files, hundreds of MB each)
+**/*.tif
+**/*.tiff
+**/*.exr
+**/*.psd
+# Baked runtime data (regenerated from source by Editor tools)
+**/Resources/WorldPolygons/region_map.bytes
+**/Resources/WorldPolygons/region_map.bytes.meta
+
+# ===========================
+# Unity (applies to SpaceGame and any future Unity projects)
+# ===========================
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+MemoryCaptures/
+[Rr]ecordings/
+
+# Asset meta data should only be ignored when the corresponding Asset is also ignored
+*.pidb.meta
+*.pdb.meta
+*.mdb.meta
+
+# Unity3D generated meta files
+*.pidb
+
+# Unity3D generated file on crash reports
+sysinfo.txt
+
+# Builds
+*.apk
+*.aab
+*.unitypackage
+*.app
+
+# Crashlytics generated file
+crashlytics-build.properties
+
+# Packed Addressables
+/[Aa]ssets/[Aa]ddressable[Aa]ssets[Dd]ata/*/**/*.bin*
+/[Aa]ssets/[Ss]tream[Ii]ng[Aa]ssets/aa.meta
+/[Aa]ssets/[Ss]tream[Ii]ng[Aa]ssets/aa/
+
+# Dotnet
+*.csproj
+*.unityproj
+*.sln
+*.suo
+*.tmp
+*.user
+*.userprefs
+*.pidb
+*.booproj
+*.svd
+*.pdb
+*.opendb
+*.VC.db
+*.slnx
+
+# ===========================
+# Plastic SCM (Unity's version control)
+# ===========================
+.plastic/
+
+# ===========================
+# Recovery folders
+# ===========================
+Assets/_Recovery/
+
+# ===========================
+# OS & Editor junk
+# ===========================
+.DS_Store
+Thumbs.db
+Desktop.ini
+.idea/
+.vscode/
+*.swp
+*~
+
+# ===========================
+# Node / npm (future web projects)
+# ===========================
+node_modules/
+.env
+.env.local
