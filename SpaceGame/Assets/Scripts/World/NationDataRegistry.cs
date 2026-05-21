@@ -82,7 +82,7 @@ public class NationDataRegistry : MonoBehaviour
 
     // Returns null if idx out of range or not loaded
     public NationRuntime GetByCountryIndex(int idx)
-        => (idx >= 0 && idx < _byCountryIdx.Length) ? _byCountryIdx[idx] : null;
+        => (_byCountryIdx != null && idx >= 0 && idx < _byCountryIdx.Length) ? _byCountryIdx[idx] : null;
 
     public NationRuntime GetByIso3(string iso3)
         => _byIso3.TryGetValue(iso3, out var n) ? n : null;
