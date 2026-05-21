@@ -12,7 +12,9 @@ using System.Text;
 //   Unzip the .zip, then select the .shp file when prompted.
 //
 // Saves Assets/Resources/WorldPolygons/region_map.bytes (~2 MB).
-// FactionTextureRenderer loads it automatically on Play — accurate country-level borders.
+// Each pixel stores a COUNTRY index (unique per country, not region index).
+// FactionTextureRenderer maps country → region → faction color at runtime.
+// Rebake required whenever WorldRegionMapper entries change.
 public static class WorldRegionBaker
 {
     const int W = 2048;
@@ -30,13 +32,17 @@ public static class WorldRegionBaker
         {
             List<PolyEntry> polys = ParseShapefile(shpPath);
 
-            // Diagnostic: count polygons per region index
+            // Diagnostic: count polygons per region
             int[] regionCounts = new int[14];
-            foreach (var p in polys) if (p.regionIdx < 14) regionCounts[p.regionIdx]++;
             string[] regionNames = { "north_america","c_america","s_america","w_europe","e_europe",
                                      "russia","middle_east","n_africa","s_africa","e_asia",
                                      "s_asia","se_asia","c_asia","oceania" };
-            var sb = new System.Text.StringBuilder($"[RegionBaker] {polys.Count} rings total:\n");
+            foreach (var p in polys)
+            {
+                byte r = WorldRegionMapper.GetRegionForCountry(p.countryIdx);
+                if (r < 14) regionCounts[r]++;
+            }
+            var sb = new StringBuilder($"[RegionBaker] {polys.Count} rings total:\n");
             for (int i = 0; i < 14; i++)
                 sb.AppendLine($"  [{i}] {regionNames[i]}: {regionCounts[i]} rings");
             Debug.Log(sb.ToString());
@@ -65,8 +71,8 @@ public static class WorldRegionBaker
 
     struct PolyEntry
     {
-        public byte    regionIdx;
-        public float[] ring; // flat [lat0, lon0, lat1, lon1, …]
+        public byte    countryIdx; // unique per country (WorldRegionMapper alphabetical index)
+        public float[] ring;       // flat [lat0, lon0, lat1, lon1, …]
     }
 
     // -------------------------------------------------------------------------
@@ -192,10 +198,10 @@ public static class WorldRegionBaker
             int shapeType = br.ReadInt32();             // LE
 
             string iso3 = recNum < isoCodes.Length ? isoCodes[recNum] : "";
-            WorldRegionMapper.TryGetIndex(iso3, out byte regionIdx);
+            WorldRegionMapper.TryGetCountryIndex(iso3, out byte countryIdx);
 
             // Shape types: 5=Polygon, 15=PolygonZ, 25=PolygonM
-            if (regionIdx != 255 &&
+            if (countryIdx != 255 &&
                 (shapeType == 5 || shapeType == 15 || shapeType == 25))
             {
                 br.ReadBytes(32);               // bounding box (4 doubles)
@@ -227,7 +233,7 @@ public static class WorldRegionBaker
                         ring[v * 2 + 1] = (float)xs[start + v]; // lon
                     }
 
-                    result.Add(new PolyEntry { regionIdx = regionIdx, ring = ring });
+                    result.Add(new PolyEntry { countryIdx = countryIdx, ring = ring });
                 }
             }
 
@@ -275,9 +281,9 @@ public static class WorldRegionBaker
                     $"Rasterising polygon {step + 1} / {order.Length}…",
                     0.15f + 0.80f * step / order.Length);
 
-            int    p         = order[step];
-            byte   regionIdx = polys[p].regionIdx;
-            float[] ring     = polys[p].ring;
+            int     p          = order[step];
+            byte    countryIdx = polys[p].countryIdx;
+            float[] ring       = polys[p].ring;
             var (x0, y0, x1, y1) = boxes[p];
 
             for (int py = y0; py <= y1; py++)
@@ -289,7 +295,7 @@ public static class WorldRegionBaker
                     if (map[i] != 255) continue;            // already assigned
                     float lon = -180f + (px + 0.5f) / W * 360f;
                     if (PointInRing(lat, lon, ring))
-                        map[i] = regionIdx;
+                        map[i] = countryIdx;
                 }
             }
         }
