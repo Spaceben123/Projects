@@ -24,12 +24,14 @@ public class FactionTextureRenderer : MonoBehaviour
 
     public void SelectCountry(int countryIdx)
     {
+        if (_selectedCountryIdx == countryIdx) return;
         _selectedCountryIdx = countryIdx;
         Recolor();
     }
 
     public void ClearSelection()
     {
+        if (_selectedCountryIdx == -1) return;
         _selectedCountryIdx = -1;
         Recolor();
     }
@@ -39,9 +41,8 @@ public class FactionTextureRenderer : MonoBehaviour
     public byte GetCountryAtPixel(int px, int py)
     {
         if (_regionIdMap == null) return 255;
-        int idx = py * _texWidth + px;
-        if (idx < 0 || idx >= _regionIdMap.Length) return 255;
-        return _regionIdMap[idx];
+        if (px < 0 || py < 0 || px >= _texWidth || py >= _texHeight) return 255;
+        return _regionIdMap[py * _texWidth + px];
     }
 
     void Start()
