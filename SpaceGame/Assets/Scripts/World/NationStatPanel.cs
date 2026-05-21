@@ -88,7 +88,7 @@ public class NationStatPanel : MonoBehaviour
 
         string stationStr = nation.spaceStations > 0 ? $"{nation.spaceStations}" : "—";
         string sitesStr   = nation.launchSitesOwned > 0 ? $"{nation.launchSitesOwned} owned" : "renting";
-        int    barFilled  = Mathf.RoundToInt(nation.techLevel / 10f);
+        int    barFilled  = Mathf.Clamp(Mathf.RoundToInt(nation.techLevel / 10f), 0, 10);
         string techBar    = new string('█', barFilled) + new string('░', 10 - barFilled);
 
         _text.text =
