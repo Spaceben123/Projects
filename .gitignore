@@ -3,7 +3,9 @@
 # ===========================
 # Raw source textures (8K+ files, hundreds of MB each)
 **/*.tif
-**/*.tiff
+**/*.png.tif
+**/*.tif
+**/*.png.tiff
 **/*.exr
 **/*.psd
 # Baked runtime data (regenerated from source by Editor tools)
