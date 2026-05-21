@@ -38,6 +38,7 @@ public class NationSelectionSystem : MonoBehaviour
 
     void HandleClick()
     {
+        if (_cam == null) return;
         Vector2 screenPos = Mouse.current.position.ReadValue();
         Ray ray = _cam.ScreenPointToRay(new Vector3(screenPos.x, screenPos.y, 0f));
 
