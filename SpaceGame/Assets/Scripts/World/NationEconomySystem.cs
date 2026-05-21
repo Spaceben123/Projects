@@ -81,5 +81,7 @@ public class NationEconomySystem : MonoBehaviour
         float costPerPoint  = TechBaseCost * Mathf.Pow(TechCostExp, n.techLevel);
         if (costPerPoint > 0f)
             n.techLevel = Mathf.Min(100f, n.techLevel + spaceRdBudget / costPerPoint);
+
+        LaunchSiteSystem.ProcessMonthlyDecision(n, stageIdx);
     }
 }
