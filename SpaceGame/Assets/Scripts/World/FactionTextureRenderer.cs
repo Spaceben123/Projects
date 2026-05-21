@@ -6,7 +6,7 @@ public class FactionTextureRenderer : MonoBehaviour
     [SerializeField] int _texHeight = 1024;
 
     Texture2D    _factionTexture;
-    byte[]       _regionIdMap;
+    byte[]       _regionIdMap;  // stores country index per pixel (0-N), 255=ocean
     Color32[]    _pixels;
     MeshRenderer _earthRenderer;
     MaterialPropertyBlock _propBlock;
@@ -19,6 +19,30 @@ public class FactionTextureRenderer : MonoBehaviour
     static readonly Color32 s_clearColor       = new Color32(0,   0,   0,   0);
 
     Texture2D _borderTexture;
+
+    int _selectedCountryIdx = -1;
+
+    public void SelectCountry(int countryIdx)
+    {
+        _selectedCountryIdx = countryIdx;
+        Recolor();
+    }
+
+    public void ClearSelection()
+    {
+        _selectedCountryIdx = -1;
+        Recolor();
+    }
+
+    public int SelectedCountryIdx => _selectedCountryIdx;
+
+    public byte GetCountryAtPixel(int px, int py)
+    {
+        if (_regionIdMap == null) return 255;
+        int idx = py * _texWidth + px;
+        if (idx < 0 || idx >= _regionIdMap.Length) return 255;
+        return _regionIdMap[idx];
+    }
 
     void Start()
     {
@@ -35,7 +59,7 @@ public class FactionTextureRenderer : MonoBehaviour
         _factionTexture.filterMode = FilterMode.Bilinear;
         _pixels = new Color32[_texWidth * _texHeight];
 
-        LoadOrBakeRegionIdMap();
+        LoadRegionIdMap();
         BakeBorderTexture();
         Recolor();
 
@@ -55,18 +79,19 @@ public class FactionTextureRenderer : MonoBehaviour
 
     void OnStageChanged(ContactStage old, ContactStage next) => Recolor();
 
-    void LoadOrBakeRegionIdMap()
+    void LoadRegionIdMap()
     {
         int total = _texWidth * _texHeight;
         TextAsset baked = Resources.Load<TextAsset>("WorldPolygons/region_map");
         if (baked != null && baked.bytes.Length == total)
         {
             _regionIdMap = (byte[])baked.bytes.Clone();
-            Debug.Log("[FactionTex] Loaded pre-baked region map (accurate).");
+            Debug.Log("[FactionTex] Loaded pre-baked country map.");
             return;
         }
-        Debug.Log("[FactionTex] No pre-baked map found — falling back to bounding-box regions. Run Assets > SpaceGame > Bake Region Map from GeoJSON for accurate borders.");
-        BakeRegionIdMap();
+        Debug.LogWarning("[FactionTex] No baked country map found — run Assets > SpaceGame > Bake Region Map from Shapefile. Globe will show no faction colours.");
+        _regionIdMap = new byte[total];
+        for (int i = 0; i < total; i++) _regionIdMap[i] = 255;
     }
 
     void BakeBorderTexture()
@@ -86,100 +111,70 @@ public class FactionTextureRenderer : MonoBehaviour
                 if (id == 255) continue; // ocean — no border pixel
 
                 bool b = false;
-                if (px > 0)     b |= _regionIdMap[i - 1]     != id;
-                if (px < W - 1) b |= _regionIdMap[i + 1]     != id;
-                if (py > 0)     b |= _regionIdMap[i - W]     != id;
-                if (py < H - 1) b |= _regionIdMap[i + W]     != id;
+                if (px > 0)     b |= _regionIdMap[i - 1] != id;
+                if (px < W - 1) b |= _regionIdMap[i + 1] != id;
+                if (py > 0)     b |= _regionIdMap[i - W] != id;
+                if (py < H - 1) b |= _regionIdMap[i + W] != id;
                 if (b) borderPx[i] = 255;
             }
         }
 
-        // Shader samples .r channel only; G/B/A unused
+        // Shader samples .r channel only
         Color32[] c = new Color32[W * H];
         for (int i = 0; i < c.Length; i++)
             c[i] = new Color32(borderPx[i], 0, 0, 255);
         _borderTexture.SetPixels32(c);
         _borderTexture.Apply(false);
 
-        // Assign once — border texture never changes (faction colours change, not geometry)
         _earthRenderer.GetPropertyBlock(_propBlock);
         _propBlock.SetTexture("_BorderTex", _borderTexture);
         _earthRenderer.SetPropertyBlock(_propBlock);
         Debug.Log("[FactionTex] Border texture baked.");
     }
 
-    void BakeRegionIdMap()
-    {
-        var registry = RegionRegistry.Instance;
-        if (registry == null) { Debug.LogWarning("[FactionTex] No RegionRegistry."); return; }
-
-        int count = registry.Regions.Length;
-        int total = _texWidth * _texHeight;
-        _regionIdMap = new byte[total];
-
-        float[][] boundaries = new float[count][];
-        for (int r = 0; r < count; r++)
-            boundaries[r] = registry.Regions[r]?.Def?.boundary;
-
-        for (int i = 0; i < total; i++)
-        {
-            int   px  = i % _texWidth;
-            int   py  = i / _texWidth;
-            float lat = -90f + (py + 0.5f) / _texHeight * 180f;
-            float lon = (px + 0.5f) / _texWidth * 360f - 180f;
-
-            byte best = 255;
-            for (int r = 0; r < count; r++)
-            {
-                if (boundaries[r] != null && PointInPolygon(lat, lon, boundaries[r]))
-                {
-                    best = (byte)r;
-                    break;
-                }
-            }
-            _regionIdMap[i] = best;
-        }
-
-        Debug.Log("[FactionTex] Region ID map baked (point-in-polygon).");
-    }
-
-    static bool PointInPolygon(float lat, float lon, float[] ring)
-    {
-        int  n      = ring.Length / 2;
-        bool inside = false;
-        int  j      = n - 1;
-        for (int i = 0; i < n; i++)
-        {
-            float yi = ring[i * 2], xi = ring[i * 2 + 1];
-            float yj = ring[j * 2], xj = ring[j * 2 + 1];
-            if ((yi > lat) != (yj > lat) &&
-                lon < (xj - xi) * (lat - yi) / (yj - yi) + xi)
-                inside = !inside;
-            j = i;
-        }
-        return inside;
-    }
-
     void Recolor()
     {
         var registry = RegionRegistry.Instance;
         if (registry == null) return;
-        if (_regionIdMap == null) { Debug.LogError("[FactionTex] Recolor called but region ID map was not baked."); return; }
+        if (_regionIdMap == null)
+        {
+            Debug.LogError("[FactionTex] Recolor called but region ID map is null.");
+            return;
+        }
 
-        int count = registry.Regions.Length;
-        Color32[] lookup = new Color32[count];
-        for (int r = 0; r < count; r++)
+        int regionCount = registry.Regions.Length; // 14 macro-regions
+
+        // Region index → faction color
+        Color32[] regionColors = new Color32[regionCount];
+        for (int r = 0; r < regionCount; r++)
         {
             var region = registry.Regions[r];
-            lookup[r] = region != null ? AlignmentColor(region.Alignment) : s_clearColor;
+            regionColors[r] = region != null ? AlignmentColor(region.Alignment) : s_clearColor;
         }
+
+        // Country index (byte 0-254) → faction color via region lookup
+        Color32[] countryColors = new Color32[256];
+        for (int c = 0; c < 255; c++)
+        {
+            byte regionIdx = WorldRegionMapper.GetRegionForCountry((byte)c);
+            if (regionIdx >= regionCount) { countryColors[c] = s_clearColor; continue; }
+
+            Color32 baseColor = regionColors[regionIdx];
+            if (c == _selectedCountryIdx)
+            {
+                // Selected: boost to fully opaque
+                countryColors[c] = new Color32(baseColor.r, baseColor.g, baseColor.b, 255);
+            }
+            else
+            {
+                countryColors[c] = baseColor;
+            }
+        }
+        countryColors[255] = s_clearColor;
 
         int total = _texWidth * _texHeight;
         for (int i = 0; i < total; i++)
-        {
-            byte id = _regionIdMap[i];
-            _pixels[i] = id < count ? lookup[id] : s_clearColor;
-        }
+            _pixels[i] = countryColors[_regionIdMap[i]];
 
         _factionTexture.SetPixels32(_pixels);
         _factionTexture.Apply(false);
