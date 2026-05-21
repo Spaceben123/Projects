@@ -13,6 +13,7 @@ public class WorldSimulation : MonoBehaviour
     EconomySystem       _econ;
     TechnologySystem    _tech;
     ContactStageManager _stages;
+    NationEconomySystem _nationEcon;
 
     float _dayAccum;
     float _monthAccum;
@@ -27,10 +28,11 @@ public class WorldSimulation : MonoBehaviour
 
     void Start()
     {
-        _pop    = GetComponent<PopulationSystem>();
-        _econ   = GetComponent<EconomySystem>();
-        _tech   = GetComponent<TechnologySystem>();
-        _stages = ContactStageManager.Instance;
+        _pop       = GetComponent<PopulationSystem>();
+        _econ      = GetComponent<EconomySystem>();
+        _tech      = GetComponent<TechnologySystem>();
+        _stages    = ContactStageManager.Instance;
+        _nationEcon = GetComponent<NationEconomySystem>();
     }
 
     void Update()
@@ -59,6 +61,8 @@ public class WorldSimulation : MonoBehaviour
             _tech?.Tick(_yearAccum / SecsPerSimYear);
             _yearAccum = 0f;
         }
+
+        _nationEcon?.Tick(Time.deltaTime, _timeWarpFactor);
     }
 
     public void CycleTimeWarp()

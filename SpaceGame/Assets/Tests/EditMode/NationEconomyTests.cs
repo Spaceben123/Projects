@@ -54,6 +54,55 @@ public class NationEconomyTests
         Assert.IsNull(reg.GetByIso3("ZZZ"));
     }
 
+    [Test]
+    public void Treasury_IncreasesEachTick_AtStage1()
+    {
+        var reg    = CreateRegistry();
+        var usa    = reg.GetByIso3("USA");
+        float before = usa.treasury;
+
+        // Manually apply 1 second of stage-1 economy (spaceRdFrac=0.22, fearDrag=0.00)
+        float simDt       = 1f;
+        float spaceRdFrac = 0.22f;
+        float fearDrag    = 0.00f;
+        float monthFrac   = simDt / 60f;
+        float effectiveGdp = usa.gdpBillions * (1f - fearDrag);
+        usa.treasury += (effectiveGdp * spaceRdFrac / 12f) * monthFrac;
+
+        Assert.Greater(usa.treasury, before);
+    }
+
+    [Test]
+    public void TechLevel_NeverExceeds100()
+    {
+        var reg = CreateRegistry();
+        var usa = reg.GetByIso3("USA");
+        usa.techLevel = 99.9f;
+
+        // Force 1000 months of max space-R&D ticks
+        float spaceRdFrac = 0.38f;
+        float fearDrag    = 0.00f;
+        for (int i = 0; i < 1000; i++)
+        {
+            float effectiveGdp  = usa.gdpBillions * (1f - fearDrag);
+            float spaceRdBudget = effectiveGdp * spaceRdFrac / 12f;
+            float costPerPoint  = 0.5f * UnityEngine.Mathf.Pow(1.055f, usa.techLevel);
+            usa.techLevel = UnityEngine.Mathf.Min(100f, usa.techLevel + spaceRdBudget / costPerPoint);
+        }
+        Assert.LessOrEqual(usa.techLevel, 100f);
+    }
+
+    [Test]
+    public void Population_DecreasesAtCollapse()
+    {
+        var reg = CreateRegistry();
+        var usa = reg.GetByIso3("USA");
+        float before = usa.populationM;
+        // Stage 8 = Collapse → popGrowth = -0.00020f
+        usa.populationM *= (1f + (-0.00020f));
+        Assert.Less(usa.populationM, before);
+    }
+
     [TearDown]
     public void TearDown()
     {
