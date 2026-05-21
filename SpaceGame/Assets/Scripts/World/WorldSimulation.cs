@@ -19,7 +19,7 @@ public class WorldSimulation : MonoBehaviour
     float _yearAccum;
 
     const float SecsPerSimDay   = 1f;
-    const float SecsPerSimMonth = 30f;
+    const float SecsPerSimMonth = 60f;
     const float SecsPerSimYear  = 365f;
 
     static readonly float[] s_warpOptions = { 1f, 10f, 60f, 365f, 3650f };

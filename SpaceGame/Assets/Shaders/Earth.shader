@@ -14,8 +14,6 @@ Shader "Space/Earth"
         _TerminatorSharpness("Terminator Sharpness (k)",Range(1,30)) = 8.0
         _NightBrightness    ("Night Lights Brightness", Range(0,1))   = 0.35
         _NightDayMaskPow    ("Night Day Mask Power",    Range(1,10))  = 3.0
-        _PopulationHeatmap  ("Population Heatmap",  2D)           = "black" {}
-        _HeatmapStrength    ("Heatmap Strength",     Range(0,1))   = 0.0
         _FactionTex      ("Faction Overlay",  2D)         = "black" {}
         _FactionStrength ("Faction Strength", Range(0,1)) = 0.4
         _BorderTex       ("Border Overlay",   2D)         = "black" {}
@@ -47,7 +45,6 @@ Shader "Space/Earth"
             TEXTURE2D(_NightTex);    SAMPLER(sampler_NightTex);
             TEXTURE2D(_NormalMap);   SAMPLER(sampler_NormalMap);
             TEXTURE2D(_SpecularMap); SAMPLER(sampler_SpecularMap);
-            TEXTURE2D(_PopulationHeatmap); SAMPLER(sampler_PopulationHeatmap);
             TEXTURE2D(_FactionTex);  SAMPLER(sampler_FactionTex);
             TEXTURE2D(_BorderTex);   SAMPLER(sampler_BorderTex);
 
@@ -58,7 +55,6 @@ Shader "Space/Earth"
                 float  _TerminatorSharpness;
                 float  _NightBrightness;
                 float  _NightDayMaskPow;
-                float  _HeatmapStrength;
                 float  _NormalStrength;
                 float  _FactionStrength;
                 float  _BorderStrength;
@@ -135,9 +131,6 @@ Shader "Space/Earth"
                 half3 litNight = nightCol.rgb * _NightBrightness * nightMask;
                 half3 color    = lerp(litNight, litDay, dayBlend);
 
-                float heat = SAMPLE_TEXTURE2D(_PopulationHeatmap, sampler_PopulationHeatmap, IN.uv).r * _HeatmapStrength;
-                color.rgb += heat * half3(0.8h, 0.3h, 0.0h) * (1.0h - dayBlend * 0.5h);
-
                 half4 faction = SAMPLE_TEXTURE2D(_FactionTex, sampler_FactionTex, IN.uv);
                 color.rgb = lerp(color.rgb, faction.rgb, faction.a * _FactionStrength);
 
@@ -173,7 +166,6 @@ Shader "Space/Earth"
                 float  _TerminatorSharpness;
                 float  _NightBrightness;
                 float  _NightDayMaskPow;
-                float  _HeatmapStrength;
                 float  _NormalStrength;
                 float  _FactionStrength;
                 float  _BorderStrength;
@@ -224,7 +216,6 @@ Shader "Space/Earth"
                 float  _TerminatorSharpness;
                 float  _NightBrightness;
                 float  _NightDayMaskPow;
-                float  _HeatmapStrength;
                 float  _NormalStrength;
                 float  _FactionStrength;
                 float  _BorderStrength;

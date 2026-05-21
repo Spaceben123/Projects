@@ -6,26 +6,19 @@ public class GlobeOverlayToggle : MonoBehaviour
     [Header("Default strengths when ON")]
     [SerializeField] float _factionStrength = 0.4f;
     [SerializeField] float _borderStrength  = 0.6f;
-    [SerializeField] float _heatmapStrength = 0.5f;
 
     bool _factionOn = true;
     bool _bordersOn = true;
-    bool _citiesOn  = true;
-    bool _heatmapOn = false;
 
-    MeshRenderer _earthRenderer;
+    MeshRenderer          _earthRenderer;
     MaterialPropertyBlock _propBlock;
-    CityDotRenderer _cityDots;
 
     void Start()
     {
         _earthRenderer = transform.parent?.GetComponent<MeshRenderer>();
         _propBlock     = new MaterialPropertyBlock();
-        _cityDots      = GetComponent<CityDotRenderer>();
-
         if (_earthRenderer == null)
             Debug.LogWarning("[GlobeToggle] Earth MeshRenderer not found on parent.");
-
         ApplyAll();
     }
 
@@ -33,16 +26,9 @@ public class GlobeOverlayToggle : MonoBehaviour
     {
         var kb = Keyboard.current;
         if (kb == null) return;
-        if (kb.f1Key.wasPressedThisFrame) ToggleFaction();
-        if (kb.f2Key.wasPressedThisFrame) ToggleBorders();
-        if (kb.f3Key.wasPressedThisFrame) ToggleCities();
-        if (kb.f4Key.wasPressedThisFrame) ToggleHeatmap();
+        if (kb.f1Key.wasPressedThisFrame) SetFactionVisible(!_factionOn);
+        if (kb.f2Key.wasPressedThisFrame) SetBordersVisible(!_bordersOn);
     }
-
-    public void ToggleFaction()  => SetFactionVisible(!_factionOn);
-    public void ToggleBorders()  => SetBordersVisible(!_bordersOn);
-    public void ToggleCities()   => SetCitiesVisible(!_citiesOn);
-    public void ToggleHeatmap()  => SetHeatmapVisible(!_heatmapOn);
 
     public void SetFactionVisible(bool v)
     {
@@ -54,18 +40,6 @@ public class GlobeOverlayToggle : MonoBehaviour
     {
         _bordersOn = v;
         SetPropFloat("_BorderStrength", v ? _borderStrength : 0f);
-    }
-
-    public void SetCitiesVisible(bool v)
-    {
-        _citiesOn = v;
-        _cityDots?.SetVisible(v);
-    }
-
-    public void SetHeatmapVisible(bool v)
-    {
-        _heatmapOn = v;
-        SetPropFloat("_HeatmapStrength", v ? _heatmapStrength : 0f);
     }
 
     void SetPropFloat(string name, float value)
@@ -80,7 +54,5 @@ public class GlobeOverlayToggle : MonoBehaviour
     {
         SetFactionVisible(_factionOn);
         SetBordersVisible(_bordersOn);
-        SetCitiesVisible(_citiesOn);
-        SetHeatmapVisible(_heatmapOn);
     }
 }
