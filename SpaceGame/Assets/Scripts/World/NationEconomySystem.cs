@@ -39,12 +39,12 @@ public class NationEconomySystem : MonoBehaviour
         foreach (var nation in nations)
         {
             if (nation == null) continue;
-            TickNation(nation, simDt, spaceRdFrac, fearDragFrac, popGrowth);
+            TickNation(nation, simDt, spaceRdFrac, fearDragFrac, popGrowth, stageIdx);
         }
     }
 
     void TickNation(NationRuntime n, float simDt,
-                    float spaceRdFrac, float fearDragFrac, float popGrowth)
+                    float spaceRdFrac, float fearDragFrac, float popGrowth, int stageIdx)
     {
         float monthFraction = simDt / SecsPerMonth;
 
@@ -59,20 +59,19 @@ public class NationEconomySystem : MonoBehaviour
         n.accumulatedMonths += monthFraction;
         if (n.accumulatedMonths >= 1f)
         {
-            RunMonthlyTick(n, popGrowth, spaceRdFrac, fearDragFrac);
+            RunMonthlyTick(n, popGrowth, spaceRdFrac, fearDragFrac, stageIdx);
             n.accumulatedMonths -= 1f;
         }
     }
 
     void RunMonthlyTick(NationRuntime n, float popGrowth,
-                        float spaceRdFrac, float fearDragFrac)
+                        float spaceRdFrac, float fearDragFrac, int stageIdx)
     {
         // Population growth
         n.populationM *= (1f + popGrowth);
 
         // GDP growth: driven by civilian + space fractions × tech multiplier
         float effectiveGdp  = n.gdpBillions * (1f - fearDragFrac);
-        int   stageIdx      = _stages != null ? Mathf.Clamp((int)_stages.CurrentStage - 1, 0, 7) : 0;
         float civFrac       = s_civFrac[stageIdx];
         float gdpGrowthRate = 0.003f + (n.techLevel / 100f) * 0.007f;
         n.gdpBillions      *= 1f + gdpGrowthRate * (civFrac + spaceRdFrac);
