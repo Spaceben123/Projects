@@ -53,9 +53,9 @@ static class SpaceLightingSetup
         // Bloom — lit Earth specular and atmosphere glow spill light realistically
         Override<Bloom>(profile, b =>
         {
-            b.intensity.Override(1.2f);
-            b.threshold.Override(0.85f);   // only the brightest parts bloom
-            b.scatter.Override(0.35f);
+            b.intensity.Override(1.0f);
+            b.threshold.Override(0.95f);   // only the brightest parts bloom
+            b.scatter.Override(0.3f);
         });
 
         // Contrast + saturation — more pop, colours punch through

@@ -3,9 +3,13 @@ using UnityEngine.InputSystem;
 
 public class GlobeOverlayToggle : MonoBehaviour
 {
+    // Overlay is a hard on/off toggle, not a blend — when on it must fully replace the
+    // lit terrain colour so it reads at constant strength regardless of lighting/atmosphere.
     [Header("Default strengths when ON")]
-    [SerializeField] float _factionStrength = 0.4f;
-    [SerializeField] float _borderStrength  = 0.6f;
+    [SerializeField] float _factionStrength = 1f;
+
+    [Header("Borders")]
+    [SerializeField] CountryBorderRenderer _borderRenderer;
 
     bool _factionOn = true;
     bool _bordersOn = true;
@@ -19,6 +23,12 @@ public class GlobeOverlayToggle : MonoBehaviour
         _propBlock     = new MaterialPropertyBlock();
         if (_earthRenderer == null)
             Debug.LogWarning("[GlobeToggle] Earth MeshRenderer not found on parent.");
+
+        if (_borderRenderer == null)
+            _borderRenderer = GetComponent<CountryBorderRenderer>();
+        if (_borderRenderer == null)
+            Debug.LogWarning("[GlobeToggle] CountryBorderRenderer not found — border toggle (F2) will do nothing.");
+
         ApplyAll();
     }
 
@@ -39,7 +49,7 @@ public class GlobeOverlayToggle : MonoBehaviour
     public void SetBordersVisible(bool v)
     {
         _bordersOn = v;
-        SetPropFloat("_BorderStrength", v ? _borderStrength : 0f);
+        _borderRenderer?.SetVisible(v);
     }
 
     void SetPropFloat(string name, float value)

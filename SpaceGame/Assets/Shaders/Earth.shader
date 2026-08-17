@@ -14,10 +14,10 @@ Shader "Space/Earth"
         _TerminatorSharpness("Terminator Sharpness (k)",Range(1,30)) = 8.0
         _NightBrightness    ("Night Lights Brightness", Range(0,1))   = 0.35
         _NightDayMaskPow    ("Night Day Mask Power",    Range(1,10))  = 3.0
-        _FactionTex      ("Faction Overlay",  2D)         = "black" {}
+        _DistrictIdxTex   ("District Index Map", 2D)        = "white" {}
+        _DistrictColorLut ("District Color LUT", 2D)        = "black" {}
+        _DistrictLutSize  ("District LUT Size (w,h,1/w,1/h)", Vector) = (128, 8, 0.0078125, 0.125)
         _FactionStrength ("Faction Strength", Range(0,1)) = 0.4
-        _BorderTex       ("Border Overlay",   2D)         = "black" {}
-        _BorderStrength  ("Border Strength",  Range(0,1)) = 0.6
     }
 
     SubShader
@@ -45,19 +45,19 @@ Shader "Space/Earth"
             TEXTURE2D(_NightTex);    SAMPLER(sampler_NightTex);
             TEXTURE2D(_NormalMap);   SAMPLER(sampler_NormalMap);
             TEXTURE2D(_SpecularMap); SAMPLER(sampler_SpecularMap);
-            TEXTURE2D(_FactionTex);  SAMPLER(sampler_FactionTex);
-            TEXTURE2D(_BorderTex);   SAMPLER(sampler_BorderTex);
+            TEXTURE2D(_DistrictIdxTex);   SAMPLER(sampler_DistrictIdxTex);
+            TEXTURE2D(_DistrictColorLut); SAMPLER(sampler_DistrictColorLut);
 
             CBUFFER_START(UnityPerMaterial)
                 float4 _DayTex_ST;
                 float4 _SpecularColor;
+                float4 _DistrictLutSize;
                 float  _Shininess;
                 float  _TerminatorSharpness;
                 float  _NightBrightness;
                 float  _NightDayMaskPow;
                 float  _NormalStrength;
                 float  _FactionStrength;
-                float  _BorderStrength;
             CBUFFER_END
 
             struct Attributes
@@ -91,6 +91,39 @@ Shader "Space/Earth"
                 OUT.bitanWS = normInputs.bitangentWS;
                 OUT.uv      = TRANSFORM_TEX(IN.uv, _DayTex);
                 return OUT;
+            }
+
+            // The territory fill is stored as a point-sampled 16-bit DISTRICT INDEX map
+            // (one district per pixel, 65535 = ocean) looked up in a small district ->
+            // colour LUT, rather than as a pre-coloured RGBA texture. Filtering an index
+            // map is meaningless, so this is a hard fetch: a boundary pixel resolves to
+            // one real district's colour rather than a bilinear blend of two. It also
+            // means an ownership change only has to rewrite ~800 LUT pixels, never the
+            // whole map, and the owner resolution already happened on the CPU so this is
+            // a single fetch rather than the old index -> owner -> palette two-hop.
+            //
+            // Decoded in full FLOAT, never half: a 16-bit float cannot represent 65535
+            // (integer precision runs out at 2048), so a half decode yields plausible but
+            // wrong districts in dense regions.
+            half4 SampleAllianceColor(float2 uv)
+            {
+                float r = SAMPLE_TEXTURE2D_LOD(_DistrictIdxTex, sampler_DistrictIdxTex, uv, 0).r;
+
+                // R16 is unsigned-normalised, so the sampler returns value / 65535.
+                uint idx = (uint)(r * 65535.0 + 0.5);
+
+                // 65535 means ocean / no district. Detecting it from the index itself
+                // rather than trusting the LUT's alpha keeps the default material state
+                // (no maps assigned yet, index map defaults to solid white = 65535) fully
+                // transparent instead of tinting the whole globe.
+                if (idx >= 65535) return half4(0, 0, 0, 0);
+
+                float lutW = _DistrictLutSize.x;
+                float col  = (float)(idx % (uint)lutW);
+                float row  = floor((float)idx / lutW);
+                float2 lutUv = float2((col + 0.5) * _DistrictLutSize.z,
+                                      (row + 0.5) * _DistrictLutSize.w);
+                return SAMPLE_TEXTURE2D_LOD(_DistrictColorLut, sampler_DistrictColorLut, lutUv, 0);
             }
 
             half4 Frag(Varyings IN) : SV_Target
@@ -131,11 +164,22 @@ Shader "Space/Earth"
                 half3 litNight = nightCol.rgb * _NightBrightness * nightMask;
                 half3 color    = lerp(litNight, litDay, dayBlend);
 
-                half4 faction = SAMPLE_TEXTURE2D(_FactionTex, sampler_FactionTex, IN.uv);
+                // Overlay is a hard toggle, not a lighting-dependent tint: at full strength it
+                // completely replaces the lit colour with a flat, constant-brightness fill/line
+                // so it reads identically in daylight, night side, or under atmosphere glow.
+                //
+                // Four rotated-grid taps antialias the district boundary at SCREEN resolution.
+                // The index map itself is point-sampled (a filtered index would be nonsense),
+                // so without this the boundary would harden into stair-steps; with it, the
+                // transition is confined to roughly one screen pixel instead of the multi-texel
+                // colour smear a bilinear RGBA overlay produced. Derivatives are clamped so the
+                // uv wrap seam can't blow the offsets up into wild samples.
+                float2 duv = min(abs(ddx(IN.uv)) + abs(ddy(IN.uv)), 0.002) * 0.25;
+                half4 faction = 0.25h * (SampleAllianceColor(IN.uv + float2( duv.x,  duv.y))
+                                       + SampleAllianceColor(IN.uv + float2(-duv.x,  duv.y))
+                                       + SampleAllianceColor(IN.uv + float2( duv.x, -duv.y))
+                                       + SampleAllianceColor(IN.uv + float2(-duv.x, -duv.y)));
                 color.rgb = lerp(color.rgb, faction.rgb, faction.a * _FactionStrength);
-
-                half border = SAMPLE_TEXTURE2D(_BorderTex, sampler_BorderTex, IN.uv).r * _BorderStrength;
-                color.rgb += border;
 
                 return half4(color, 1.0);
             }
@@ -159,16 +203,18 @@ Shader "Space/Earth"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Shadows.hlsl"
 
+            // Byte-identical to the ForwardLit pass's CBUFFER — any divergence between
+            // passes silently breaks SRP Batcher compatibility.
             CBUFFER_START(UnityPerMaterial)
                 float4 _DayTex_ST;
                 float4 _SpecularColor;
+                float4 _DistrictLutSize;
                 float  _Shininess;
                 float  _TerminatorSharpness;
                 float  _NightBrightness;
                 float  _NightDayMaskPow;
                 float  _NormalStrength;
                 float  _FactionStrength;
-                float  _BorderStrength;
             CBUFFER_END
 
             float3 _LightDirection;
@@ -209,16 +255,18 @@ Shader "Space/Earth"
 
             #include "Packages/com.unity.render-pipelines.universal/ShaderLibrary/Core.hlsl"
 
+            // Byte-identical to the ForwardLit pass's CBUFFER — any divergence between
+            // passes silently breaks SRP Batcher compatibility.
             CBUFFER_START(UnityPerMaterial)
                 float4 _DayTex_ST;
                 float4 _SpecularColor;
+                float4 _DistrictLutSize;
                 float  _Shininess;
                 float  _TerminatorSharpness;
                 float  _NightBrightness;
                 float  _NightDayMaskPow;
                 float  _NormalStrength;
                 float  _FactionStrength;
-                float  _BorderStrength;
             CBUFFER_END
 
             struct DepthAttr { float4 posOS : POSITION; };

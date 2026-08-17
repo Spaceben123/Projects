@@ -20,7 +20,7 @@ public class NationStatPanel : MonoBehaviour
     void Start()
     {
         if (_selectionSystem == null)
-            _selectionSystem = FindFirstObjectByType<NationSelectionSystem>();
+            _selectionSystem = FindAnyObjectByType<NationSelectionSystem>();
 
         if (_selectionSystem != null)
         {
@@ -76,7 +76,7 @@ public class NationStatPanel : MonoBehaviour
         _text.fontSize        = 13f;
         _text.color           = Color.white;
         _text.alignment       = TextAlignmentOptions.TopLeft;
-        _text.enableWordWrapping = false;
+        _text.textWrappingMode = TextWrappingModes.NoWrap;
     }
 
     public void Show(NationRuntime nation)

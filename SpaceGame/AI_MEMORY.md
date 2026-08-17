@@ -14,12 +14,24 @@
 | Spec | Name | Status |
 |---|---|---|
 | A | World Foundation + Earth Overlays | ✅ Complete (all 15 tasks, 18/18 tests passing) |
-| A-cont | F1–F4 Globe Overlays | ✅ Working |
-| B | Weapon System | 🔜 Next |
+| A-cont | F1–F4 Globe Overlays | ✅ Working (F3/F4 removed — city/heatmap deleted) |
+| B | Nation Economy System | ✅ Code complete (2026-05-21), scene wiring pending |
+| C | Weapon System | 🔜 Next |
 
 **Full project context:** Always read `C:\Users\space\Projects\SpaceGame\CLAUDE.md` at session start.
 
-## Spec B — Weapon System (Approved Design, Plan Not Yet Written)
+## Spec B — Nation Economy (Code Complete, Scene Wiring Pending)
+
+All scripts done. Scene wiring needed in Unity Editor:
+1. Remove "Missing Script" from Earth/GlobeOverlays (was CityDotRenderer — deleted 2026-05-21)
+2. Add to WorldSimulation: NationDataRegistry, NationEconomySystem, NationSelectionSystem, NationStatPanel
+3. NationSelectionSystem Inspector: assign Earth GameObject → "Earth Transform"
+4. Rebake region_map.bytes: Assets > SpaceGame > Bake Region Map from Shapefile (format changed to country indices 0-225)
+5. Save scene
+
+New files: NationRuntime.cs, NationDataRegistry.cs, NationEconomySystem.cs, NationSelectionSystem.cs, NationStatPanel.cs, LaunchSiteSystem.cs, Resources/Data/countries.json (195 nations, 2024 IMF data)
+
+## Spec C — Weapon System (Approved Design, Plan Not Yet Written)
 
 - ScriptableObject-based weapon definitions (name, category, blast radius, deploy time, speed)
 - Ship menu UI: Weapons → Category → Type → Deploy → Left-click surface to fire
@@ -27,7 +39,7 @@
 - Line-of-sight check using Moon as occluder: if clear → direct high-speed shot; if blocked → cinematic orbital arc (Bezier)
 - Targets: Earth surface OR Moon surface
 - ShipAnchor: empty GameObject placeholder (real ship added later)
-- Impact system: sample population density from CityData gaussian at hit point, compute casualties/fear, update `RegionRuntime.DamageLevel`
+- Impact system: sample population density at hit point, compute casualties/fear, update `RegionRuntime.DamageLevel`
 
 ## Scene Structure
 
@@ -37,7 +49,7 @@
 - **Post-processing:** ACES + Bloom (threshold 0.85) + Color Adjustments
 - **Gravity:** 0 (space game)
 - **WorldSimulation** GameObject has all sim components
-- **Earth/GlobeOverlays** has CityDotRenderer, FactionTextureRenderer, GlobeOverlayToggle
+- **Earth/GlobeOverlays** has FactionTextureRenderer, GlobeOverlayToggle (CityDotRenderer deleted 2026-05-21)
 
 ## Strict Technical Patterns (Hard Rules — Never Break These)
 

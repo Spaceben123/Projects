@@ -53,7 +53,7 @@ public static class WorldRegionMapper
         ("MRT",7),("MLI",7),("NER",7),("TCD",7),("ESH",7),
         // 8 — s_africa
         ("SEN",8),("GMB",8),("GNB",8),("GIN",8),("SLE",8),("LBR",8),
-        ("CIV",8),("GHA",8),("TGO",8),("BEN",8),("NGA",8),("CMR",8),
+        ("CIV",8),("GHA",8),("TGO",8),("BEN",8),("BFA",8),("NGA",8),("CMR",8),
         ("GNQ",8),("GAB",8),("COG",8),("COD",8),("CAF",8),
         ("UGA",8),("KEN",8),("RWA",8),("BDI",8),
         ("TZA",8),("MOZ",8),("MWI",8),

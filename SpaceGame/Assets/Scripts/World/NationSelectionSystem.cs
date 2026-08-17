@@ -2,7 +2,10 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 // Attach to a persistent GameObject (e.g. WorldSimulation).
-// Raycasts against Earth on left-click → reads country index from region_map → selects nation.
+// Raycasts against Earth on left-click → reads the district index from
+// district_map → resolves that district's CURRENT owner → selects that nation.
+// Clicking conquered land therefore selects the conqueror, which is the correct
+// behaviour and comes free from district-level ownership.
 public class NationSelectionSystem : MonoBehaviour
 {
     [SerializeField] Transform              _earthTransform;
@@ -10,9 +13,6 @@ public class NationSelectionSystem : MonoBehaviour
 
     public event System.Action<NationRuntime> OnNationSelected;
     public event System.Action               OnNationDeselected;
-
-    const int MapW = 2048;
-    const int MapH = 1024;
 
     Camera _cam;
 
@@ -53,21 +53,40 @@ public class NationSelectionSystem : MonoBehaviour
         float lat = Mathf.Asin(Mathf.Clamp(local.y, -1f, 1f)) * Mathf.Rad2Deg;
         float lon = Mathf.Atan2(-local.z, -local.x) * Mathf.Rad2Deg;
 
-        int px = Mathf.Clamp(Mathf.FloorToInt((lon + 180f) / 360f * MapW), 0, MapW - 1);
-        int py = Mathf.Clamp(Mathf.FloorToInt((lat +  90f) / 180f * MapH), 0, MapH - 1);
-
         if (_factionRenderer == null) return;
-        byte countryIdx = _factionRenderer.GetCountryAtPixel(px, py);
 
-        if (countryIdx == 255)
+        // Pixel dimensions come from the renderer's actual baked raster rather than
+        // hardcoded constants: the bake resolution is a single source of truth, and
+        // hardcoding 2048x1024 against a 4096x2048 bake halved hit-test precision.
+        int mapW = _factionRenderer.MapWidth;
+        int mapH = _factionRenderer.MapHeight;
+        if (mapW <= 0 || mapH <= 0) return;
+
+        int px = Mathf.Clamp(Mathf.FloorToInt((lon + 180f) / 360f * mapW), 0, mapW - 1);
+        int py = Mathf.Clamp(Mathf.FloorToInt((lat +  90f) / 180f * mapH), 0, mapH - 1);
+
+        ushort districtIdx = _factionRenderer.GetDistrictAtPixel(px, py);
+        if (districtIdx == WorldDistricts.None)
         {
             Deselect();
             return;
         }
 
-        _factionRenderer.SelectCountry(countryIdx);
+        // Resolve through the district's current owner, not its original parent
+        // country, so conquered territory selects the conqueror.
+        byte ownerIdx = TerritoryController.Instance != null
+            ? TerritoryController.Instance.GetDistrictOwner(districtIdx)
+            : WorldDistricts.GetParentCountry(districtIdx);
 
-        var nation = NationDataRegistry.Instance?.GetByCountryIndex(countryIdx);
+        if (ownerIdx == 255)
+        {
+            Deselect();
+            return;
+        }
+
+        _factionRenderer.SelectCountry(ownerIdx);
+
+        var nation = NationDataRegistry.Instance?.GetByCountryIndex(ownerIdx);
         if (nation != null) OnNationSelected?.Invoke(nation);
         else Deselect();
     }
